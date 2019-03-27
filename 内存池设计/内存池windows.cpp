@@ -56,6 +56,7 @@ class StackAlloc
       Node* newNode = allocator_.allocate(1);
       // 调用节点的构造函数
       allocator_.construct(newNode, Node());
+
       // 入栈操作
       newNode->data = element;
       newNode->prev = head_;
@@ -82,7 +83,7 @@ class StackAlloc
 };
 
 
-template <typename T, size_t BlockSize = 4096>
+template <typename T, size_t BlockSize = 16>
 class MemoryPool
 {
   public:
@@ -125,24 +126,23 @@ class MemoryPool
         if (currentSlot_ >= lastSlot_) { // 
           // 分配一个内存区块
           data_pointer_ newBlock = reinterpret_cast<data_pointer_>(operator new(BlockSize));//operate new 仅仅分配能容纳BlockSize大小的内存 //https://www.cnblogs.com/slgkaifa/p/6887887.html operate用法 
-          //cout<<"newBlock: "<<(int*)newBlock<<endl;
-		  //cout<<"lastBlock: " <<(int*)(newBlock + BlockSize)<<endl;
-		  reinterpret_cast<slot_pointer_>(newBlock)->next = currentBlock_; //新申请的内存块指向原内存块 
-          currentBlock_ = reinterpret_cast<slot_pointer_>(newBlock); //当前块指针 
-          //cout<<"currentBlock_: "<< currentBlock_<<endl;
-          //cout<<"sizeof(slot_pointer_): " << sizeof(slot_pointer_)<<endl;
-          //data_pointer_ body = newBlock + sizeof(slot_pointer_); 
-          //cout<<"body: " << (int*)body<<endl;
-          //uintptr_t result = reinterpret_cast<uintptr_t>(body); //https://blog.csdn.net/cs_zhanyb/article/details/16973379 uintptr_t数据
-          //cout<<"result: "<<result<<endl;
-          //cout<<"alignof(slot_type_): " <<alignof(slot_type_)<<endl;
-          //cout<<"bodyPadding :"<<bodyPadding<<endl;
-		  currentSlot_ = reinterpret_cast<slot_pointer_>(newBlock);
-		  size_t bodyPadding = BlockSize % alignof(slot_type_);//alignof以sloot type对齐 申请的剩余空间 https://blog.csdn.net/luoshabugui/article/details/83268086 alignof 
-          
-		  //cout<<"currentSlot_: "<<currentSlot_<<endl; 
-          lastSlot_ = reinterpret_cast<slot_pointer_>(newBlock + BlockSize - bodyPadding);
-          //cout<<"lastSlot_ :"<<lastSlot_<<endl;
+          cout<<"newBlock: "<<(int*)newBlock<<endl;
+		  cout<<"lastBlock: " <<(int*)(newBlock + BlockSize)<<endl;
+		  reinterpret_cast<slot_pointer_>(newBlock)->next = currentBlock_;
+          currentBlock_ = reinterpret_cast<slot_pointer_>(newBlock);
+          cout<<"currentBlock_: "<< currentBlock_<<endl;
+          cout<<"sizeof(slot_pointer_): " << sizeof(slot_pointer_)<<endl;
+          data_pointer_ body = newBlock + sizeof(slot_pointer_);
+          cout<<"body: " << (int*)body<<endl;
+          uintptr_t result = reinterpret_cast<uintptr_t>(body); //https://blog.csdn.net/cs_zhanyb/article/details/16973379 uintptr_t数据
+          cout<<"result: "<<result<<endl;
+          cout<<"alignof(slot_type_): " <<alignof(slot_type_)<<endl;
+          size_t bodyPadding = (alignof(slot_type_) - result) % alignof(slot_type_);//alignof以sloot type对齐 申请的剩余空间 https://blog.csdn.net/luoshabugui/article/details/83268086 alignof 
+          cout<<"bodyPadding :"<<bodyPadding<<endl;
+		  currentSlot_ = reinterpret_cast<slot_pointer_>(body + bodyPadding);
+		  cout<<"currentSlot_: "<<currentSlot_<<endl; 
+          lastSlot_ = reinterpret_cast<slot_pointer_>(newBlock + BlockSize - sizeof(slot_type_) + 1);
+          cout<<"lastSlot_ :"<<lastSlot_<<endl;
         }
         return reinterpret_cast<pointer>(currentSlot_++);
       }
@@ -151,7 +151,7 @@ class MemoryPool
     // 销毁指针 p 指向的内存区块
     void deallocate(pointer p, size_t n = 1) {
       if (p != nullptr) {
-        reinterpret_cast<slot_pointer_>(p)->next = freeSlots_; //空闲槽链表 
+        reinterpret_cast<slot_pointer_>(p)->next = freeSlots_;
         freeSlots_ = reinterpret_cast<slot_pointer_>(p);
       }
     }
@@ -171,7 +171,7 @@ class MemoryPool
   private:
     // 用于存储内存池中的对象槽
     union Slot_ {
-      T element; 
+      T element;
       Slot_* next;
     };
 
@@ -191,14 +191,14 @@ class MemoryPool
     // 指向当前内存区块中的空闲对象槽
     slot_pointer_ freeSlots_;
     // 检查定义的内存池大小是否过小
-    static_assert(BlockSize >= 2 * sizeof(slot_type_), "BlockSize too small.");
+    //static_assert(BlockSize >= 2 * sizeof(slot_type_), "BlockSize too small.");
 };
 
 
 
 int main()
 {
-    clock_t start;
+ /*   clock_t start;
 
     // 使用默认分配器
     StackAlloc<int, std::allocator<int> > stackDefault;
@@ -212,9 +212,9 @@ int main()
     }
     std::cout << "Default Allocator Time: ";
     std::cout << (((double)clock() - start) / CLOCKS_PER_SEC) << "\n\n";
- 
+*/ 
     // 使用内存池
-     StackAlloc<int, MemoryPool<int> > stackPool;
+/*     StackAlloc<int, MemoryPool<int> > stackPool;
      start = clock();
      for (int j = 0; j < REPS; j++) {
          assert(stackPool.empty());
@@ -225,10 +225,10 @@ int main()
      }
      std::cout << "MemoryPool Allocator Time: ";
      std::cout << (((double)clock() - start) / CLOCKS_PER_SEC) << "\n\n";
-
- 	/*StackAlloc<int, MemoryPool<int> > stackPool;
+*/ 
+ 	StackAlloc<int, MemoryPool<int> > stackPool;
  	stackPool.push(1); 
- 	*/
+ 	
 
     return 0;
 }
