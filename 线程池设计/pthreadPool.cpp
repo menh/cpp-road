@@ -1,3 +1,4 @@
+//https://www.cnblogs.com/xudong-bupt/p/6707070.html
 #include <iostream>
 #include <pthread.h>
 #include <time.h>
@@ -28,7 +29,7 @@ int condition_lock(condition_t* cond)
 
 int condition_signal(condition_t* cond)
 {
-	return pthread_cond_signal(&cond->pcond);
+	return pthread_cond_signal(&cond->pcond); //发送一个信号给另外一个正在处于阻塞等待状态的线程 
 }
 
 int condition_unlock(condition_t* cond)
@@ -95,7 +96,7 @@ void CThreadpool::threadpool_add_task(void *(*run)(void *arg), void *arg)
 	}
 	this->last = newTask;
 	
-	if(this->idle > 0)
+	if(this->idle > 0) 
 	{
 		//v(cond)
 		condition_signal(&this->ready);
