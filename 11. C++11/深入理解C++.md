@@ -312,6 +312,7 @@ int main()
   ```
 
 3.1 继承构造函数
+在子类中使用基类的构造函数
 ```
 #include <iostream>
 using namespace std;
@@ -331,6 +332,245 @@ int main()
 
 	cout<<b.a<<endl;
 	return 0;
-} 
+}
 ```
 3.2 委派构造函数
+    通过委派其他构造函数来构造，也就是在构造函数中调用其他构造函数
+```
+class Info{
+	public:
+		Info(){
+			a = 0;
+		}
+		Info(int i){
+			new (this) Info();
+			b = 1;
+		}
+		Info(char c) : Info(){
+
+			c = 'c';
+		}
+		int a;
+		int b;
+		char c;
+};
+```
+
+3.3 右值引用：移动语义和完美转发
+  3.3.1 指针成员与拷贝构造
+  指针成员在拷贝时要用深拷贝，避免悬挂指针
+  3.3.2 移动语义
+  将临时变量的内存保留下来，使新的对象指向这块内存，避免内存重复申请
+  ```
+  #include <iostream>
+using namespace std;
+class HasPtrMem{
+	public:
+		HasPtrMem(): d(new int(0)){
+			cout<< "construct: " << ++n_cstr <<endl;  
+		}
+
+		HasPtrMem(const HasPtrMem& h): d(new int(*h.d)){
+			cout<< "copy construct: " << ++n_cptr <<endl;
+		}
+
+		HasPtrMem(HasPtrMem&& h): d(h.d){
+			h.d = nullptr;
+			cout<< "Move construct:" << ++n_mvtr <<endl;
+		}
+
+		~HasPtrMem(){
+			cout << "destruct: " << ++n_dstr <<endl;
+		}
+		int* d;
+		static int n_cstr;
+		static int n_dstr;
+		static int n_cptr;
+		static int n_mvtr;
+};
+
+int HasPtrMem::n_cstr = 0;
+int HasPtrMem::n_dstr = 0;
+int HasPtrMem::n_cptr = 0;
+int HasPtrMem::n_mvtr = 0;
+
+HasPtrMem GetTemp(){
+	HasPtrMem h;
+	cout<<"resource from " << __func__ << ": " << hex << h.d <<endl;
+	return h;
+}
+int GetTemp1(){
+	HasPtrMem a = HasPtrMem();
+	return 1;
+}
+
+int getint(){
+	int ia = 1 ;
+	return ia;
+}
+int main()
+{
+	HasPtrMem a = GetTemp();
+	cout<<"resource from " << __func__ << ": " << hex << a.d <<endl;
+
+	//int b = GetTemp1();
+	//HasPtrMem a1;
+	return 0;
+}
+  ```
+3.3.3 左值，右值与右值引用
+    右值是为了减少临时变量的复制,延长临时变量的生存期
+    ```
+    #include <iostream>
+using namespace std;
+class HasPtrMem{
+	public:
+		HasPtrMem(): d(new int(0)){
+			cout<< "construct: " << ++n_cstr <<endl;  
+		}
+
+		HasPtrMem(const HasPtrMem& h): d(new int(*h.d)){
+			cout<< "copy construct: " << ++n_cptr <<endl;
+		}
+
+		HasPtrMem(HasPtrMem&& h): d(h.d){
+			h.d = nullptr;
+			cout<< "Move construct:" << ++n_mvtr <<endl;
+		}
+
+		~HasPtrMem(){
+			cout << "destruct: " << ++n_dstr <<endl;
+		}
+		int* d;
+		static int n_cstr;
+		static int n_dstr;
+		static int n_cptr;
+		static int n_mvtr;
+};
+
+int HasPtrMem::n_cstr = 0;
+int HasPtrMem::n_dstr = 0;
+int HasPtrMem::n_cptr = 0;
+int HasPtrMem::n_mvtr = 0;
+
+HasPtrMem GetTemp(){
+	HasPtrMem h;
+	cout<<"resource from " << __func__ << ": " << hex << h.d <<endl;
+	return h;
+}
+int GetTemp1(){
+	HasPtrMem a = HasPtrMem();
+	return 1;
+}
+
+int getint(){
+	int ia = 1 ;
+	return ia;
+}
+int main()
+{
+	HasPtrMem temp;
+	HasPtrMem a = std::move(temp);
+	cout<<"resource from " << __func__ << ": " << hex << a.d <<endl;
+
+	//int b = GetTemp1();
+	//HasPtrMem a1;
+	return 0;
+}
+    ```
+3.3.4 std::move 强制转化为右值
+    强制将一个左值转换为右值
+
+3.3.5 移动语义的一些其他问题
+3.3.6 完美转发
+    在函数模板中，完全依照模板的参数类型，将参数传递给模板函数中的调用的另外一个函数
+3.4 显式转换操作符
+    explicit 禁止隐式调用，保证对象必须是显式构造
+    ```
+    #include <iostream>
+using namespace std;
+struct Rational1{
+	Rational1(int n = 0, int d = 1) : num(n), den(d){
+		cout<< __func__ << "(" << "/" << den << ")" <<endl;
+	}
+	int num;
+	int den;
+};
+
+struct Rational2{
+	explicit Rational2(int n = 0, int d = 1) : num(n), den(d){
+		cout<< __func__ << "(" << "/" << den << ")" <<endl;
+	}
+	int num;
+	int den;
+};
+
+void Display1(Rational1 ra){
+	cout<< "Numberator: " << ra.num << " Den :" << ra.den <<endl;
+}
+
+void Display2(Rational2 ra){
+	cout<< "Numberator: " << ra.num << " Den :" << ra.den <<endl;
+}
+int main()
+{
+	Rational1 r1_1 = 11;
+	Rational1 r1_2(12);
+
+	Rational2 r2_1 = 21;
+	Rational2 r2_2(22);
+
+	Display1(1);
+
+	Display2(2);
+
+	Display2(Rational2(2));
+	return 0;
+ }
+    ```
+
+    3.5 列表初始化
+    3.5.1 初始化列表
+      可以用列表初始化数组容器等。
+      ```
+      #include <iostream>
+#include <map>
+#include <vector>
+using namespace std;
+
+int main()
+{
+	int a[] = {1,3,5};
+	int b[] {2,4,6};
+	vector<int> c{1,3,5};
+	map<int, float> d = {{1,1.0}, {2, 2.0}, {3, 3.0}};
+	return 0;
+ }
+      ```
+
+    3.5.2 防止类型收窄
+
+    3.6 POD 类型
+
+    3.7 非受限联合体
+
+    3.8 用户自定义字面量
+
+    3.9 内联名字空间
+
+    3.10 模板别名
+
+    3.11 一般化的SFINEA规则
+
+4.1 右尖括号>改进
+    >>可以连写，不移动会被解析成右移
+4.2 auto类型推导
+
+4.2.1 静态类型、动态类型与类型推导
+    auto关键字，编译期间会替换为对应的类型
+4.2.2 auto的优势
+    除了懒外没有优势
+4.2.2 auto的使用细则
+    最好不用
+4.3 decltype
+4.3.1 
