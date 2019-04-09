@@ -555,7 +555,7 @@ int main()
     3.7 非受限联合体
 
     3.8 用户自定义字面量
-
+u
     3.9 内联名字空间
 
     3.10 模板别名
@@ -573,4 +573,191 @@ int main()
 4.2.2 auto的使用细则
     最好不用
 4.3 decltype
-4.3.1 
+4.3.1 typeid 与 decltype
+  通过typeid可以查看变量的类型，样例代码如下：
+  ```
+  #include <iostream>
+#include <typeinfo>
+using namespace std;
+class White{
+};
+
+class Black{
+};
+int main()
+{
+	White a;
+	Black b;
+	cout<< typeid(a).name() << endl;
+	cout<< typeid(b).name() << endl;
+	return 0;
+ }
+  ```
+
+  通过decltype进行类型推导,声明与括号内表达式相同的变量，应用实例如下
+  ```
+  #include <iostream>
+#include <typeinfo>
+using namespace std;
+class White{
+};
+
+class Black{
+};
+int main()
+{
+	White a;
+	decltype(a) b;
+	cout<< typeid(a).name() << endl;
+	cout<< typeid(b).name() << endl;
+	return 0;
+ }
+  ```
+4.3.2 decltype 的应用
+通过decltype和typedef/using来将一些复杂类型的变量或表达式转化为一个简单的表达式
+```
+using size_t = decltype(sizeof(0));
+using ptrdiff_t = decltype((int*)0 - (int*)0);
+using nullptr_t = decltype(nullptr);
+
+vector<int> vec;
+typedef decltype(vec.begin()) vectype;
+```
+
+4.3.3 dectype 推导的四规则
+
+4.3.4 cv限制符的继承和冗余的符号
+  auto类型推导不能带走cv限制符
+  decltype能够带走cb限制符
+
+4.4 追踪返回类型
+
+4.4.1 追踪返回类型的引入
+
+4.4.2 使用追踪返回类型的函数
+  追踪函数返回类型配合auto与decltype实现泛型编程
+  ```
+  #include <iostream>
+#include <typeinfo>
+#include <vector>
+using namespace std;
+template<typename T1, typename T2>
+auto add(const T1& t1, const T2& t2) -> decltype(t1 + t2)
+{
+	return t1 + t2;
+}
+
+double add(const double& d1, const double& d2)
+{
+	return d1 + d2;
+}
+
+int add (const int& i1, const int& i2)
+{
+	return i1 + i2;
+}
+
+template<typename T>
+auto Forward(const T& t1, const T& t2) -> decltype(add(t1, t2))
+{
+	return add(t1, t2);
+}
+int main()
+{
+	cout<< add(1,2) <<endl;
+	cout<< add(1.2,2.3) <<endl;
+	cout<<Forward(1,2)<<endl;
+	cout<<Forward(1.2,2.3)<<endl;
+	return 0;
+ }
+  ```
+4.5 基于范围的for循环
+可通过for_each和for(:)来遍历for循环
+```
+#include <iostream>
+#include <typeinfo>
+#include <vector>
+#include <algorithm>
+using namespace std;
+int action1(int& e)
+{
+	e *= 2;
+	return e;
+}
+int action2(int & e)
+{
+	cout<< e <<endl;
+}
+int main()
+{
+	int arr[5] = {1,2,3,4,5};
+	for_each(arr, arr + sizeof(arr) / sizeof(arr[0]), action1);
+	for_each(arr, arr + sizeof(arr) / sizeof(arr[0]), action2);
+	for(auto e : arr)
+	{
+		action2(e);
+	}
+	return 0;
+ }
+```
+
+5.1 强类型枚举
+
+5.1.1 枚举：分门别类与数值的名字
+
+5.1.2 有缺陷的枚举类型
+
+5.1.3 强类型枚举以及C++11 对原有枚举类型的拓展
+可以指定枚举类型
+```
+enum class Type_c : char {
+	General,Light,Medium,Heavy
+};
+```
+
+5.2 堆内存管理： 智能指针与垃圾回收
+
+5.2.1 显式内存管理
+
+5.2.2 C++11 的智能指针
+用unique_ptr, shared_ptr和 weak_ptr等智能指针自动回收堆分配的对象
+unique_ptr唯一指针，独享内存
+shared_ptr和共享指针，共享内存，引用计数
+weak_ptr弱指针，挂靠在其他指针上，可用于验证share_ptr的有效性
+```
+#include <iostream>
+#include <memory>
+using namespace std;
+
+void Check(weak_ptr<int> & wp)
+{
+	shared_ptr<int> sp = wp.lock();
+	if(sp != nullptr)
+		cout<< "still " << *sp <<endl;
+	else
+		cout<< "pointer is invalid." <<endl;
+}
+int main()
+{
+	shared_ptr<int> sp1(new int(22));
+	shared_ptr<int> sp2 = sp1;
+	weak_ptr<int> wp =sp1;
+
+	cout<< *sp1 <<endl;
+	cout<< *sp2 <<endl;
+	Check(wp);
+
+	sp1.reset();
+	Check(wp);
+
+	sp2.reset();
+	Check(wp);
+
+	return 0;
+}
+```
+5.2.3 垃圾回收的分类
+垃圾回收方式
+1. 基于引用计数的垃圾回收器
+
+2. 基于跟踪处理的垃圾回收器
