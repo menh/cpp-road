@@ -867,3 +867,45 @@ class T<X, Y> : private B<X>, private B<Y> {};
 6.3.3 内存模型，内存一致性与memory_order
 
 6.4 线程局部存储
+TLS (thread local storage) 线程局部存储变量指拥有线程生命周期及线程可见性的变量
+线程拥有自己的栈空间，但是堆空间、静态数据区是共享的。
+
+6.5 快速推出：quick_exit 与 at_quick_exit
+
+7.1 指针空值 nullptr
+将NULL替换位nullptr
+
+7.1.2 nullptr 和nullptr_t
+
+7.1.3 一些关于nullptr规则的讨论
+nullptr不是(void*)0的别名
+
+7.2 默认函数的控制
+重用default控制默认函数的生成，在默认函数定义或声明上加"=default",显式的指示编译器生成该函数的默认版本
+
+7.2.2 = default 与 = deleted
+=default修饰的函数为显示缺省函数
+=delete修饰的函数为删除函数
+
+7.3 lambda 函数
+
+7.3.2 C++11 中的lambda函数
+lambda语法
+[capture](parameters) mutable -> retun-type{statement}
+[capture]：捕捉列表，捕捉上下文中的变量以供lambda函数使用
+  捕捉列表取值
+  [var] 表示值传递方式捕捉变量var
+  [=]  表示值传递方式捕捉所有父作用域的变量
+  [&var] 表示引用传递捕捉变量var,包括this
+  [&] 表示引用传递捕捉所有父作用域的变量
+  [this]表示值传递方式捕捉当前this指针
+
+(parameters)：参数列表，与普通函数的参数列表一致，如果不需要参数传递，则可以连同括号一起省略
+mutable： mutable修饰符，默认情况下，lambda函数总市一个const函数，mutable可以取消其常量性。在使用该修饰符时，参数列表不可省略
+->return-type: 返回类型，用于追踪返回类型形式声明函数的返回类型。不需要返回值时可以连同->一起省略
+{statement}: 函数体
+
+7.3.3 lambda与仿函数
+仿函数是编译器实现lambda的一种方式
+
+7.3.4 lambda的基础使用
